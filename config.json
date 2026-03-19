@@ -1,0 +1,24 @@
+{
+  "census_api_key": " 808b4b370812e20dc52d4ce275d09f7474324ea3",
+  "bea_api_key":    "20A94EDE-E2D2-49DE-B3E4-1C5A0545964A",
+  "hud_token":      "eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9.eyJhdWQiOiI2IiwianRpIjoiYTdhOGM1NTA5NWNhMDNjMmUzYzg4ZjRkZGVjYzA3MDU5OWE0NzRjMDE1YzkxZDdjZGIzM2NhMTU0NWRiMzdjYzU1NDkzNTkyYTIzNGU5ZjkiLCJpYXQiOjE3NzM5NjE5MzQuMzk4NywibmJmIjoxNzczOTYxOTM0LjM5ODcwNCwiZXhwIjoyMDg5NTgxMTM0LjM5NDIyNywic3ViIjoiMTIzMjYyIiwic2NvcGVzIjpbXX0.M3N7H_A6VyN2phtgmtV5qEv4FJlMGjj-lLUCxIIQumXlNmtCl8qOwGx0rnYSROBj_NhfqBhMSPvUseU95MjKsw
+
+",
+
+  "defaults": {
+    "radius_miles":    35,
+    "lookback_months": 30,
+    "area_type":       "developed",
+    "output_format":   "table",
+    "verbose":         true
+  },
+
+  "endpoints": {
+    "census_base":    "https://api.census.gov/data",
+    "bea_base":       "https://apps.bea.gov/api/data",
+    "hud_base":       "https://www.huduser.gov/hudapi/public",
+    "fhfa_hmda":      "https://api.consumerfinance.gov/data/hmda/nationwide/first_lien",
+    "nominatim":      "https://nominatim.openstreetmap.org",
+    "census_ftp":     "ftp2.census.gov"
+  }
+}
