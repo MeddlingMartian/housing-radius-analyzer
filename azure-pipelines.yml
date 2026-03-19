@@ -1,0 +1,246 @@
+# =============================================================================
+# azure-pipelines.yml
+# Housing Radius Analyzer — Azure DevOps CI/CD Pipeline
+# =============================================================================
+#
+# Triggers:
+#   - Push to main branch           → runs full test + data pull + publish
+#   - Scheduled nightly at 02:00 UTC → automated data refresh
+#   - Pull Request to main          → runs tests only (no publish)
+#
+# Required Azure DevOps Variable Groups (Library → Variable Groups):
+#   Group: "hra-secrets"
+#     CENSUS_API_KEY   – Census Bureau API key
+#     BEA_API_KEY      – Bureau of Economic Analysis API key
+#     HUD_TOKEN        – HUD USPS API bearer token
+#     AZURE_STORAGE_CONN_STRING – connection string for output blob storage
+# =============================================================================
+
+trigger:
+  branches:
+    include:
+      - main
+      - 'release/*'
+  paths:
+    exclude:
+      - 'docs/*'
+      - '*.md'
+      - '.gitignore'
+
+pr:
+  branches:
+    include:
+      - main
+
+schedules:
+  - cron: "0 2 * * *"          # 02:00 UTC nightly
+    displayName: "Nightly housing data refresh"
+    branches:
+      include:
+        - main
+    always: true               # run even if no code changes
+
+# =============================================================================
+variables:
+  - group: hra-secrets         # links to Library variable group above
+  - name:  MATLAB_VERSION
+    value: 'R2024b'
+  - name:  MATLAB_TOOLBOXES
+    value: 'Statistics_and_Machine_Learning_Toolbox,Mapping_Toolbox'
+  - name:  ARTIFACT_NAME
+    value: 'housing-radius-outputs'
+  - name:  OUTPUT_CONTAINER
+    value: 'hra-outputs'
+
+# =============================================================================
+stages:
+
+# -----------------------------------------------------------------------------
+- stage: Validate
+  displayName: '🔍 Validate & Lint'
+  jobs:
+    - job: LintAndTest
+      displayName: 'MATLAB syntax check + unit tests'
+      pool:
+        vmImage: 'ubuntu-latest'
+
+      steps:
+        - checkout: self
+
+        - task: MathWorks.matlab-azure-devops-release.InstallMATLAB.InstallMATLAB@1
+          displayName: 'Install MATLAB $(MATLAB_VERSION)'
+          inputs:
+            release: $(MATLAB_VERSION)
+            products: $(MATLAB_TOOLBOXES)
+
+        - task: MathWorks.matlab-azure-devops-release.RunMATLABCommand.RunMATLABCommand@1
+          displayName: 'Run unit tests'
+          inputs:
+            command: |
+              addpath(genpath('.'));
+              results = runtests('tests/', 'OutputDetail', 'Detailed');
+              assertSuccess(results);
+
+        - task: MathWorks.matlab-azure-devops-release.RunMATLABCommand.RunMATLABCommand@1
+          displayName: 'Validate config schema'
+          inputs:
+            command: |
+              cfg = jsondecode(fileread('config.json'));
+              assert(isfield(cfg,'defaults'),  'config.json missing defaults');
+              assert(isfield(cfg,'endpoints'), 'config.json missing endpoints');
+              disp('Config schema OK.');
+
+        - task: PublishTestResults@2
+          displayName: 'Publish test results'
+          inputs:
+            testResultsFormat: 'JUnit'
+            testResultsFiles:  '**/test-results/*.xml'
+          condition: always()
+
+# -----------------------------------------------------------------------------
+- stage: DataPull
+  displayName: '📡 Data Pull & Processing'
+  dependsOn: Validate
+  condition: and(succeeded(), ne(variables['Build.Reason'], 'PullRequest'))
+
+  jobs:
+    - job: PullHousingData
+      displayName: 'Fetch + process housing data'
+      pool:
+        vmImage: 'ubuntu-latest'
+      timeoutInMinutes: 60
+
+      steps:
+        - checkout: self
+
+        - task: MathWorks.matlab-azure-devops-release.InstallMATLAB.InstallMATLAB@1
+          displayName: 'Install MATLAB $(MATLAB_VERSION)'
+          inputs:
+            release: $(MATLAB_VERSION)
+            products: $(MATLAB_TOOLBOXES)
+
+        # Inject secrets into config at runtime — NEVER hardcode in repo
+        - task: Bash@3
+          displayName: 'Inject API keys from Key Vault'
+          inputs:
+            targetType: 'inline'
+            script: |
+              python3 - <<'EOF'
+              import json, os
+              with open('config.json','r') as f:
+                  cfg = json.load(f)
+              cfg['census_api_key'] = os.environ['CENSUS_API_KEY']
+              cfg['bea_api_key']    = os.environ['BEA_API_KEY']
+              cfg['hud_token']      = os.environ['HUD_TOKEN']
+              with open('config.json','w') as f:
+                  json.dump(cfg, f, indent=2)
+              print('Keys injected.')
+              EOF
+          env:
+            CENSUS_API_KEY: $(CENSUS_API_KEY)
+            BEA_API_KEY:    $(BEA_API_KEY)
+            HUD_TOKEN:      $(HUD_TOKEN)
+
+        - task: MathWorks.matlab-azure-devops-release.RunMATLABCommand.RunMATLABCommand@1
+          displayName: 'Run full data pipeline'
+          inputs:
+            command: |
+              addpath(genpath('.'));
+              analyzer = HousingRadiusAnalyzer('config.json');
+
+              % Default pull: Bartlesville, OK — customize via pipeline variable
+              analyzer.setLocation('city','Bartlesville','state','OK','zip','74003');
+
+              results = analyzer.run();
+              analyzer.report(results);
+
+              % Export all formats
+              mkdir('pipeline_outputs');
+              analyzer.exportData(results, 'csv',  'pipeline_outputs/housing');
+              analyzer.exportData(results, 'json', 'pipeline_outputs/housing');
+              analyzer.exportData(results, 'xml',  'pipeline_outputs/housing');
+              analyzer.exportData(results, 'xlsx', 'pipeline_outputs/housing');
+
+              disp('Pipeline data export complete.');
+
+        - task: PublishBuildArtifacts@1
+          displayName: 'Publish outputs as pipeline artifact'
+          inputs:
+            PathtoPublish:  'pipeline_outputs'
+            ArtifactName:   $(ARTIFACT_NAME)
+            publishLocation: 'Container'
+
+# -----------------------------------------------------------------------------
+- stage: Publish
+  displayName: '☁️ Publish to Azure Blob'
+  dependsOn: DataPull
+  condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/main'))
+
+  jobs:
+    - job: UploadToBlob
+      displayName: 'Upload outputs to Azure Storage'
+      pool:
+        vmImage: 'ubuntu-latest'
+
+      steps:
+        - download: current
+          artifact: $(ARTIFACT_NAME)
+
+        - task: AzureCLI@2
+          displayName: 'Upload CSV/JSON/XML to blob container'
+          inputs:
+            azureSubscription: 'HRA-Azure-ServiceConnection'
+            scriptType: 'bash'
+            scriptLocation: 'inlineScript'
+            inlineScript: |
+              az storage blob upload-batch \
+                --destination $(OUTPUT_CONTAINER) \
+                --source "$(Pipeline.Workspace)/$(ARTIFACT_NAME)" \
+                --connection-string "$(AZURE_STORAGE_CONN_STRING)" \
+                --overwrite true \
+                --pattern "*.{csv,json,xml,xlsx}"
+
+              echo "Upload complete: $(date -u)"
+
+# -----------------------------------------------------------------------------
+- stage: GitMerge
+  displayName: '🔀 Git Data Branch Merge'
+  dependsOn: Publish
+  condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/main'))
+
+  jobs:
+    - job: CommitDataOutputs
+      displayName: 'Commit pipeline outputs to data branch'
+      pool:
+        vmImage: 'ubuntu-latest'
+
+      steps:
+        - checkout: self
+          persistCredentials: true
+
+        - download: current
+          artifact: $(ARTIFACT_NAME)
+
+        - task: Bash@3
+          displayName: 'Commit to data/housing-pulls branch'
+          inputs:
+            targetType: 'inline'
+            script: |
+              git config user.email "pipeline@azure.devops"
+              git config user.name  "HRA Azure Pipeline"
+
+              # Checkout or create data branch
+              git fetch origin
+              git checkout -B data/housing-pulls origin/data/housing-pulls 2>/dev/null || \
+              git checkout -b data/housing-pulls
+
+              # Copy outputs
+              mkdir -p data/$(Build.BuildNumber)
+              cp -r "$(Pipeline.Workspace)/$(ARTIFACT_NAME)/." data/$(Build.BuildNumber)/
+
+              # Commit
+              git add data/
+              git commit -m "chore(data): automated housing pull $(Build.BuildNumber) [skip ci]" || \
+                echo "Nothing to commit"
+
+              git push origin data/housing-pulls
