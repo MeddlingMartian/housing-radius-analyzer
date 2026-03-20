@@ -1,0 +1,19 @@
+# Copyright (C) 2026 Tyler Blankenship
+# Copyright (C) 2026 Rae
+# Copyright (C) 2026 Lucas
+# Copyright (C) 2026 Daloze Benoit - Eregon
+#
+# Gemfile for housing-radius-analyzer Jekyll site
+
+source "https://rubygems.org"
+
+gem "jekyll", "~> 4.3"
+gem "minima", "~> 2.5"
+
+group :jekyll_plugins do
+  gem "jekyll-feed"
+  gem "jekyll-seo-tag"
+  gem "jekyll-sitemap"
+end
+
+gem "webrick", "~> 1.8"
