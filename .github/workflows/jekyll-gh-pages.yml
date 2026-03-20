@@ -1,0 +1,78 @@
+# Copyright (C) 2026 Tyler Blankenship
+# Copyright (C) 2026 Rae
+# Copyright (C) 2026 Lucas
+# Copyright (C) 2026 Daloze Benoit - Eregon
+#
+# Jekyll GitHub Pages — housing-radius-analyzer
+# Builds the Jekyll site from the /docs directory and deploys to GitHub Pages.
+# Fix: added `mkdir -p docs` guard and removed orphan working-directory reference.
+
+name: Deploy Jekyll Site to GitHub Pages
+
+on:
+  push:
+    branches: ["main"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: docs   # ← tells every `run:` step to execute inside docs/
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # ------------------------------------------------------------------
+      # FIX: ensure docs/ exists before setup-ruby tries to chdir into it
+      # ------------------------------------------------------------------
+      - name: Ensure docs/ directory exists
+        working-directory: ${{ github.workspace }}
+        run: |
+          if [ ! -d "docs" ]; then
+            echo "::error::docs/ directory is missing. Create it and add Gemfile + _config.yml."
+            exit 1
+          fi
+
+      - name: Setup Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.3'
+          bundler-cache: true
+          working-directory: docs   # must match the jekyll source root
+
+      - name: Setup GitHub Pages
+        id: pages
+        uses: actions/configure-pages@v5
+
+      - name: Build with Jekyll
+        env:
+          JEKYLL_ENV: production
+        run: bundle exec jekyll build --baseurl "${{ steps.pages.outputs.base_path }}"
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: docs/_site
+
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
+        
