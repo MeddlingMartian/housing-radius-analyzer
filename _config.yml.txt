@@ -1,0 +1,45 @@
+# Copyright (C) 2026 Tyler Blankenship
+# Copyright (C) 2026 Rae
+# Copyright (C) 2026 Lucas
+# Copyright (C) 2026 Daloze Benoit - Eregon
+#
+# Jekyll configuration — housing-radius-analyzer
+
+title:           "Housing Radius Analyzer"
+description:     "Analyze housing options within a defined radius. Built by Tyler Blankenship."
+author:          "Tyler Blankenship"
+email:           ""
+baseurl:         ""      # leave empty unless deploying to a sub-path
+url:             ""      # set to your GitHub Pages URL, e.g. https://meddlingmartian.github.io
+
+# Build settings
+theme:           minima
+markdown:        kramdown
+highlighter:     rouge
+permalink:       pretty
+
+# Minima theme skin (choices: auto | dark | classic | solarized | solarized-dark)
+minima:
+  skin: dark
+  social_links:
+    - { platform: github, user_url: "https://github.com/MeddlingMartian/housing-radius-analyzer" }
+
+# Plugins (must also be listed in Gemfile)
+plugins:
+  - jekyll-feed
+  - jekyll-seo-tag
+  - jekyll-sitemap
+  - jekyll-relative-links
+
+# Exclude from build output
+exclude:
+  - Gemfile
+  - Gemfile.lock
+  - node_modules
+  - vendor/
+  - "*.sh"
+  - README.md
+
+# Sass / CSS compilation
+sass:
+  style: compressed
