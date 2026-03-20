@@ -1,0 +1,37 @@
+# Copyright (C) 2026 Tyler Blankenship
+# Copyright (C) 2026 Rae
+# Copyright (C) 2026 Lucas
+# Copyright (C) 2026 Daloze Benoit - Eregon
+#
+# .gitattributes -- Linguist language detection overrides
+# Reference: https://github.com/github-linguist/linguist
+#
+# Attribute reference:
+#   linguist-generated     = excluded from language stats + hidden in diffs
+#   linguist-vendored      = treated as third-party code, excluded from stats
+#   linguist-documentation = excluded from stats (docs, not source)
+#   linguist-language=X    = override the detected language for a file
+
+# --- Line ending normalization -------------------------------------------
+*             text=auto
+*.sh          text eol=lf
+*.rb          text eol=lf
+*.yml         text eol=lf
+*.yaml        text eol=lf
+*.md          text eol=lf
+*.json        text eol=lf
+*.js          text eol=lf
+*.css         text eol=lf
+*.html        text eol=lf
+
+# --- Generated / compiled assets -----------------------------------------
+*.min.js      linguist-generated
+*.min.css     linguist-generated
+Gemfile.lock  linguist-generated
+
+# --- Vendored dependencies -----------------------------------------------
+vendor/**     linguist-vendored
+
+# --- Documentation (excluded from language stats) ------------------------
+*.md          linguist-documentation
+LICENSE       linguist-documentation
