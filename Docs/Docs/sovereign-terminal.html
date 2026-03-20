@@ -1,0 +1,797 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1"/>
+<meta name="theme-color" content="#0d0f1a"/>
+<title>The Sovereign Terminal</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,300;0,400;0,500;0,700;1,400&family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet"/>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+
+:root{
+  --bg:        #0d0f1a;
+  --bg2:       #131525;
+  --bg3:       #1a1d2e;
+  --bg4:       #1f2235;
+  --surface:   #232640;
+  --surface2:  #2a2e4a;
+  --border:    rgba(255,255,255,0.07);
+  --border2:   rgba(255,255,255,0.12);
+  --accent:    #6c63ff;
+  --accent2:   #8b84ff;
+  --accent3:   #a89cff;
+  --gold:      #f0b429;
+  --green:     #3ecf8e;
+  --red:       #ff6b6b;
+  --orange:    #f5a623;
+  --text:      #e8eaf6;
+  --text2:     #9fa3c7;
+  --text3:     #5c6080;
+  --code-bg:   #161828;
+  --code-kw:   #9d8cff;
+  --code-str:  #f0965a;
+  --code-cmt:  #5c6080;
+  --code-num:  #79d4b8;
+  --tab-h:     56px;
+  --nav-h:     64px;
+  --header-h:  52px;
+}
+
+html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif}
+
+/* ── CHROME FRAME ─────────────────────────────── */
+.frame{
+  display:flex;flex-direction:column;height:100vh;
+  max-width:420px;margin:0 auto;position:relative;
+  background:var(--bg);
+  box-shadow:0 0 80px rgba(108,99,255,0.15);
+}
+
+/* HEADER */
+.header{
+  height:var(--header-h);display:flex;align-items:center;
+  justify-content:space-between;padding:0 20px;
+  background:var(--bg2);border-bottom:1px solid var(--border);
+  flex-shrink:0;position:relative;z-index:10;
+}
+.header-brand{display:flex;align-items:center;gap:10px}
+.header-icon{
+  width:28px;height:28px;border-radius:6px;
+  background:var(--surface);border:1px solid var(--border2);
+  display:flex;align-items:center;justify-content:center;
+  font-size:13px;color:var(--accent2)
+}
+.header-title{font-family:'Syne',sans-serif;font-size:14px;font-weight:600;
+  letter-spacing:0.02em;color:var(--text)}
+.header-btn{
+  width:32px;height:32px;border-radius:7px;background:var(--surface);
+  border:1px solid var(--border2);cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+  color:var(--text2);font-size:13px;transition:all .2s
+}
+.header-btn:hover{background:var(--surface2);color:var(--accent2)}
+
+/* SOURCE header extras */
+.source-tabs-bar{
+  display:flex;gap:0;background:var(--bg2);
+  border-bottom:1px solid var(--border);flex-shrink:0;
+  overflow-x:auto;scrollbar-width:none;
+}
+.source-tabs-bar::-webkit-scrollbar{display:none}
+.stab{
+  padding:0 16px;height:40px;display:flex;align-items:center;gap-8px;
+  font-family:'JetBrains Mono',monospace;font-size:12px;
+  color:var(--text3);cursor:pointer;border-bottom:2px solid transparent;
+  white-space:nowrap;transition:all .2s;gap:8px;
+}
+.stab.active{color:var(--text);border-bottom-color:var(--accent)}
+.stab .close{color:var(--text3);font-size:10px;opacity:.6;margin-left:4px}
+.stab .dot{width:6px;height:6px;border-radius:50%;display:inline-block}
+.stab .dot.rb{background:#e05252}
+.stab .dot.java{background:var(--orange)}
+.stab .dot.py{background:var(--gold)}
+
+.source-toolbar{
+  display:flex;align-items:center;gap:8px;padding:10px 16px;
+  background:var(--bg2);border-bottom:1px solid var(--border);flex-shrink:0;
+}
+.tool-btn{
+  display:flex;align-items:center;gap:6px;padding:6px 14px;
+  border-radius:7px;font-size:12px;font-weight:600;letter-spacing:.05em;
+  cursor:pointer;border:1px solid transparent;transition:all .2s;
+  font-family:'Syne',sans-serif;
+}
+.tool-btn.run{background:var(--accent);color:#fff;border-color:var(--accent)}
+.tool-btn.run:hover{background:var(--accent2)}
+.tool-btn.debug{background:transparent;color:var(--text2);border-color:var(--border2)}
+.tool-btn.debug:hover{border-color:var(--accent3);color:var(--accent3)}
+.connected{
+  margin-left:auto;display:flex;align-items:center;gap:6px;
+  font-size:11px;color:var(--text2);font-family:'JetBrains Mono',monospace;
+}
+.c-dot{width:7px;height:7px;border-radius:50%;background:var(--green);
+  box-shadow:0 0 6px var(--green);animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}
+.gear-btn{color:var(--text3);cursor:pointer;font-size:14px;margin-left:6px}
+
+/* CONTENT SCROLL AREA */
+.content{flex:1;overflow-y:auto;scrollbar-width:thin;scrollbar-color:var(--surface2) transparent;position:relative}
+.content::-webkit-scrollbar{width:3px}
+.content::-webkit-scrollbar-track{background:transparent}
+.content::-webkit-scrollbar-thumb{background:var(--surface2);border-radius:2px}
+
+/* TABS */
+.tab-pane{display:none;min-height:100%}
+.tab-pane.active{display:block}
+
+/* ── DOCS TAB ────────────────────────────────── */
+.docs-hero{padding:28px 24px 20px;background:var(--bg)}
+.docs-hero h1{
+  font-family:'Syne',sans-serif;font-size:38px;font-weight:800;
+  line-height:1.08;letter-spacing:-0.02em;color:#fff;margin-bottom:16px;
+}
+.docs-hero .placeholder{
+  font-family:'JetBrains Mono',monospace;font-size:12px;
+  color:var(--text3);opacity:.7;margin-top:8px;
+}
+
+.toc-card{
+  margin:0 20px 20px;background:var(--bg3);border:1px solid var(--border);
+  border-radius:12px;padding:18px 20px;
+}
+.toc-title{font-family:'Syne',sans-serif;font-size:15px;font-weight:700;
+  margin-bottom:14px;color:var(--text)}
+.toc-list{list-style:none}
+.toc-list li{
+  padding:7px 0;border-bottom:1px solid var(--border);
+  font-size:13px;color:var(--text2);display:flex;align-items:center;gap:10px;
+  cursor:pointer;transition:color .2s;
+}
+.toc-list li:last-child{border-bottom:none}
+.toc-list li:hover{color:var(--accent2)}
+.toc-list li::before{content:'·';color:var(--accent);font-size:20px;line-height:0}
+
+.code-block-wrap{
+  margin:0 20px 20px;border-radius:12px;overflow:hidden;
+  border:1px solid var(--border);
+}
+.code-block-header{
+  background:var(--bg3);padding:10px 16px;
+  display:flex;align-items:center;justify-content:space-between;
+  border-bottom:1px solid var(--border);
+}
+.traffic-lights{display:flex;gap:6px}
+.tl{width:11px;height:11px;border-radius:50%}
+.tl.r{background:#ff5f57}.tl.y{background:#ffbd2e}.tl.g{background:#28c840}
+.file-label{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--text3)}
+.code-block{background:var(--code-bg);padding:16px 18px;overflow-x:auto}
+pre{font-family:'JetBrains Mono',monospace;font-size:12px;line-height:1.7;white-space:pre;color:var(--text2)}
+.kw{color:var(--code-kw)} .str{color:var(--code-str)} .cmt{color:var(--code-cmt)}
+.num{color:var(--code-num)} .cls{color:#79c0ff} .fn{color:#d2a8ff}
+.ph{color:var(--text3);font-style:italic}
+
+.section-block{padding:20px 24px;border-top:1px solid var(--border)}
+.section-block h3{
+  font-family:'Syne',sans-serif;font-size:16px;font-weight:700;
+  color:var(--gold);margin-bottom:10px;
+}
+.section-block p{font-size:13px;line-height:1.7;color:var(--text2)}
+.section-block p .tag{
+  font-family:'JetBrains Mono',monospace;font-size:11px;
+  background:var(--surface);color:var(--accent2);
+  padding:1px 6px;border-radius:4px;
+}
+
+.quote-block{
+  margin:20px 24px;padding:20px;background:var(--bg3);
+  border-left:3px solid var(--accent);border-radius:0 10px 10px 0;
+}
+.quote-block p{font-size:14px;line-height:1.7;color:var(--text2);font-style:italic}
+
+/* ── METRICS TAB ─────────────────────────────── */
+.metrics-hero{padding:24px 24px 16px;background:var(--bg)}
+.metrics-hero h1{font-family:'Syne',sans-serif;font-size:28px;font-weight:800;
+  line-height:1.1;color:#fff;margin-bottom:8px}
+.metrics-hero .sub{font-size:13px;color:var(--text2);line-height:1.5}
+.metrics-hero .sub b{font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--accent3)}
+
+.metrics-actions{display:flex;gap:10px;padding:0 20px 20px}
+.m-btn{
+  display:flex;align-items:center;gap:6px;padding:8px 18px;
+  border-radius:8px;font-size:13px;font-weight:500;cursor:pointer;
+  transition:all .2s;border:1px solid transparent;
+}
+.m-btn.config{background:var(--surface);border-color:var(--border2);color:var(--text2)}
+.m-btn.bench{background:var(--accent);color:#fff;font-weight:600}
+.m-btn.bench:hover{background:var(--accent2)}
+.m-btn.bench.running{background:#1a2a3a;border-color:var(--green);color:var(--green);animation:none}
+
+.stat-card{
+  margin:0 20px 12px;background:var(--bg3);border:1px solid var(--border);
+  border-radius:12px;padding:18px 20px;
+}
+.stat-label{font-size:11px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;
+  color:var(--text3);margin-bottom:8px;font-family:'Syne',sans-serif}
+.stat-value{font-family:'Syne',sans-serif;font-size:42px;font-weight:800;
+  color:#fff;line-height:1;letter-spacing:-0.02em}
+.stat-value span.unit{font-size:18px;color:var(--text2);font-weight:400;margin-left:4px}
+.stat-meta{margin-top:10px;display:flex;align-items:center;gap:8px}
+.badge-green{background:rgba(62,207,142,.12);color:var(--green);
+  padding:3px 8px;border-radius:20px;font-size:11px;font-weight:600;
+  font-family:'JetBrains Mono',monospace}
+.badge-red{background:rgba(255,107,107,.12);color:var(--red);
+  padding:3px 8px;border-radius:20px;font-size:11px;font-weight:600;
+  font-family:'JetBrains Mono',monospace}
+.stat-bar{height:3px;background:var(--surface);border-radius:2px;margin-top:14px}
+.stat-bar-fill{height:100%;border-radius:2px;background:linear-gradient(90deg,var(--accent),var(--accent2));
+  transition:width 1.2s cubic-bezier(.4,0,.2,1)}
+
+.version-card{
+  margin:0 20px 12px;background:var(--bg3);border:1px solid var(--border);
+  border-radius:12px;padding:18px 20px;
+}
+.vc-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+.vc-title{font-family:'Syne',sans-serif;font-size:14px;font-weight:700}
+.vc-tabs{display:flex;gap:6px}
+.vtab{padding:4px 10px;border-radius:6px;font-size:11px;font-weight:600;
+  font-family:'JetBrains Mono',monospace;cursor:pointer;
+  background:var(--surface);color:var(--text3);border:1px solid transparent;transition:all .2s}
+.vtab.active{background:var(--accent);color:#fff}
+.vtab.preview{background:rgba(108,99,255,.2);color:var(--accent2);border-color:var(--accent)}
+
+.chart-area{height:80px;position:relative;overflow:hidden}
+.chart-svg{width:100%;height:100%}
+.chart-labels{display:flex;justify-content:space-between;margin-top:6px}
+.chart-labels span{font-size:10px;color:var(--text3);font-family:'JetBrains Mono',monospace;letter-spacing:.05em}
+
+.defs-card{
+  margin:0 20px 12px;background:var(--bg3);border:1px solid var(--border);
+  border-radius:12px;padding:18px 20px;
+}
+.defs-title{font-family:'Syne',sans-serif;font-size:15px;font-weight:700;margin-bottom:14px}
+.def-item{
+  padding:12px 14px;background:var(--surface);border-radius:9px;
+  margin-bottom:8px;display:flex;align-items:flex-start;justify-content:space-between;
+  border:1px solid var(--border);
+}
+.def-item:last-child{margin-bottom:0}
+.def-name{font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--text);font-weight:500}
+.def-desc{font-size:11px;color:var(--text3);margin-top:3px;line-height:1.4}
+.def-icon{font-size:14px;color:var(--text3);margin-left:8px;margin-top:1px}
+.view-all{margin-top:14px;font-size:13px;color:var(--accent2);cursor:pointer;
+  display:flex;align-items:center;gap:4px}
+.view-all:hover{color:var(--accent3)}
+
+.live-stream{
+  margin:0 20px 20px;border:1px solid var(--border);border-radius:12px;overflow:hidden;
+}
+.ls-header{
+  background:var(--bg4);padding:10px 16px;
+  display:flex;align-items:center;gap:10px;border-bottom:1px solid var(--border);
+}
+.ls-dots{display:flex;gap:5px}
+.ls-dot{width:9px;height:9px;border-radius:50%}
+.ls-dot.r{background:#ff5f57}.ls-dot.y{background:#ffbd2e}.ls-dot.g{background:#28c840}
+.ls-label{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--text3);letter-spacing:.1em}
+.ls-running{display:flex;align-items:center;gap:5px;margin-left:auto;
+  font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--green)}
+.ls-running::before{content:'';width:6px;height:6px;border-radius:50%;
+  background:var(--green);animation:pulse 1s infinite}
+.ls-body{background:var(--code-bg);padding:12px 14px;font-family:'JetBrains Mono',monospace;
+  font-size:11px;line-height:1.8;max-height:160px;overflow-y:auto;scrollbar-width:none}
+.ls-body::-webkit-scrollbar{display:none}
+.log-time{color:var(--text3)}
+.log-info{color:#79d4b8}
+.log-exec{color:var(--orange)}
+.log-data{color:var(--accent2)}
+
+/* ── SOURCE TAB ──────────────────────────────── */
+.editor-wrap{display:flex;flex-direction:column;height:100%;min-height:400px}
+.line-numbers{
+  position:absolute;left:0;top:0;width:44px;padding:16px 0;
+  font-family:'JetBrains Mono',monospace;font-size:12px;line-height:1.7;
+  color:var(--text3);text-align:right;padding-right:12px;
+  user-select:none;background:var(--code-bg);
+}
+.editor-body{
+  position:relative;background:var(--code-bg);
+  padding:16px 16px 16px 52px;min-height:500px;overflow-x:auto;
+}
+.editor-body pre{
+  font-family:'JetBrains Mono',monospace;font-size:13px;
+  line-height:1.7;white-space:pre;tab-size:2;
+}
+.line-highlight{
+  position:absolute;left:0;right:0;height:calc(1.7em);
+  background:rgba(108,99,255,.08);pointer-events:none;border-left:2px solid var(--accent);
+}
+.editor-status{
+  background:var(--bg4);padding:8px 16px;
+  display:flex;align-items:center;gap:16px;flex-shrink:0;
+  border-top:1px solid var(--border);
+}
+.es-item{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--text3);
+  letter-spacing:.08em;text-transform:uppercase}
+.es-item.lang{color:var(--accent2)}
+
+/* FAB */
+.fab{
+  position:fixed;bottom:80px;right:20px;
+  width:52px;height:52px;border-radius:16px;
+  background:linear-gradient(135deg,var(--accent),#9b5de5);
+  box-shadow:0 8px 24px rgba(108,99,255,.45);
+  display:flex;align-items:center;justify-content:center;
+  cursor:pointer;transition:transform .2s,box-shadow .2s;
+  z-index:100;border:none;color:#fff;font-size:20px;
+}
+.fab:hover{transform:translateY(-2px) scale(1.05);box-shadow:0 12px 32px rgba(108,99,255,.55)}
+.fab:active{transform:scale(.95)}
+
+/* BOTTOM NAV */
+.bottom-nav{
+  height:var(--nav-h);display:flex;align-items:center;
+  background:var(--bg2);border-top:1px solid var(--border);
+  flex-shrink:0;position:relative;z-index:10;padding-bottom:env(safe-area-inset-bottom);
+}
+.nav-item{
+  flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;
+  cursor:pointer;padding:10px 0;transition:all .2s;
+  font-size:10px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;
+  color:var(--text3);font-family:'Syne',sans-serif;
+}
+.nav-item svg{width:20px;height:20px;stroke-width:1.5}
+.nav-item.active{color:var(--accent2)}
+.nav-item.active svg{filter:drop-shadow(0 0 4px var(--accent))}
+.nav-indicator{
+  position:absolute;top:0;left:0;width:33.333%;height:2px;
+  background:linear-gradient(90deg,var(--accent),var(--accent2));
+  border-radius:0 0 2px 2px;transition:transform .3s cubic-bezier(.4,0,.2,1);
+}
+
+/* ANIMATIONS */
+@keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+.tab-pane.active{animation:fadeIn .25s ease}
+@keyframes countUp{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+.stat-value{animation:countUp .5s ease both}
+
+/* SCROLLBAR for content */
+#content-source{scrollbar-width:none}
+#content-source::-webkit-scrollbar{display:none}
+</style>
+</head>
+<body>
+<div class="frame">
+
+  <!-- HEADER (shared) -->
+  <div class="header" id="main-header">
+    <div class="header-brand">
+      <div class="header-icon">⬡</div>
+      <span class="header-title">The Sovereign Terminal</span>
+    </div>
+    <div style="display:flex;gap:8px">
+      <div class="header-btn" id="theme-toggle" title="Toggle theme">☀</div>
+      <div class="header-btn" title="Settings">&lt;/&gt;</div>
+    </div>
+  </div>
+
+  <!-- SOURCE EXTRAS (shown only on source tab) -->
+  <div id="source-extras" style="display:none">
+    <div class="source-tabs-bar">
+      <div class="stab active"><span class="dot rb"></span>main.rb <span class="close">×</span></div>
+      <div class="stab"><span class="dot java"></span>Service.java <span class="close">×</span></div>
+      <div class="stab"><span class="dot py"></span>auth.py <span class="close">×</span></div>
+    </div>
+    <div class="source-toolbar">
+      <button class="tool-btn run" onclick="runCode()">▶ RUN</button>
+      <button class="tool-btn debug">🐞 DEBUG</button>
+      <div class="connected">
+        <span class="c-dot"></span>CONNECTED: MASTER
+      </div>
+      <span class="gear-btn">⚙</span>
+    </div>
+  </div>
+
+  <!-- CONTENT -->
+  <div class="content" id="main-content">
+
+    <!-- ══ DOCS ══ -->
+    <div class="tab-pane active" id="tab-docs">
+      <div class="docs-hero">
+        <h1>Java Core<br>Architecture.</h1>
+        <div class="placeholder">{{DATA:TEXT:TEXT_1}}</div>
+      </div>
+
+      <div class="toc-card">
+        <div class="toc-title">Table of Contents</div>
+        <ul class="toc-list">
+          <li>Initialization Logic</li>
+          <li>Memory Management</li>
+          <li>Stream API Performance</li>
+          <li>Garbage Collection Tones</li>
+        </ul>
+      </div>
+
+      <div class="code-block-wrap">
+        <div class="code-block-header">
+          <div class="traffic-lights"><div class="tl r"></div><div class="tl y"></div><div class="tl g"></div></div>
+          <span class="file-label">Main.java</span>
+        </div>
+        <div class="code-block">
+          <h3 style="font-family:'Syne',sans-serif;font-size:15px;font-weight:700;color:var(--text);margin-bottom:12px">Core Implementation</h3>
+          <p style="font-size:12px;color:var(--text2);line-height:1.6;margin-bottom:14px">The following block demonstrates the refined syntax for high-performance <span class="tag" style="font-family:'JetBrains Mono',monospace;font-size:11px;background:var(--surface);color:var(--accent2);padding:1px 5px;border-radius:3px">{@code Java}</span> environments. Ensure that <span class="tag" style="font-family:'JetBrains Mono',monospace;font-size:11px;background:var(--surface);color:var(--accent2);padding:1px 5px;border-radius:3px">{@code JVM}</span> flags are tuned for heap stability.</p>
+<pre><span class="kw">public class</span> <span class="cls">SovereignTerminal</span> {
+  <span class="kw">public static void</span> <span class="fn">main</span>(<span class="cls">Str</span>…
+    <span class="ph">{{DATA:TEXT:TEXT_2}}</span>
+
+    <span class="cmt">// Execution context opt…</span>
+    System.out.<span class="fn">println</span>(<span class="str">"Sov…</span>
+  }
+}</pre>
+        </div>
+      </div>
+
+      <div class="quote-block">
+        <p>"In architectural programming, the efficiency of a system is not measured by its peak speed, but by its behavioral predictability under saturation."</p>
+      </div>
+
+      <div class="section-block">
+        <h3>Heap Optimization</h3>
+        <p>Use the <span class="tag">{@code G1GC}</span> collector for predictable pause times. In the Sovereign Terminal environment, we recommend setting <span class="tag">{@code -Xms4g}</span> as a baseline for terminal node stability.</p>
+      </div>
+
+      <div class="section-block">
+        <h3>Thread Safety</h3>
+        <p>Prefer <span class="tag">{@code VarHandle}</span> over atomic wrappers when dealing with high-contention fields within the <span class="tag">{@code root_access}</span> module.</p>
+      </div>
+
+      <div style="height:100px"></div>
+    </div><!-- /docs -->
+
+    <!-- ══ METRICS ══ -->
+    <div class="tab-pane" id="tab-metrics">
+      <div class="metrics-hero">
+        <h1>Ruby Performance Suite</h1>
+        <p class="sub">Executive summary of the <b>benchmark-driver</b> execution across multiple target environments.</p>
+      </div>
+      <div class="metrics-actions">
+        <div class="m-btn config">≡ Config</div>
+        <div class="m-btn bench" id="bench-btn" onclick="toggleBench()">▶ make benchmark</div>
+      </div>
+
+      <div class="stat-card">
+        <div class="stat-label">Total Iterations / Sec</div>
+        <div style="display:flex;align-items:flex-end;gap:12px">
+          <div class="stat-value" id="iter-val">42.8<span class="unit">M</span></div>
+          <div class="badge-green">+12.4% vs 3.2</div>
+        </div>
+        <div class="stat-bar"><div class="stat-bar-fill" style="width:0%" id="iter-bar"></div></div>
+      </div>
+
+      <div class="stat-card">
+        <div class="stat-label">Avg Execution Time</div>
+        <div style="display:flex;align-items:flex-end;gap:12px">
+          <div class="stat-value">1.24<span class="unit">ms</span></div>
+          <div class="badge-red">↗ Slowdown in 3.4-dev</div>
+        </div>
+      </div>
+
+      <div class="stat-card">
+        <div class="stat-label">Peak Memory Usage</div>
+        <div style="display:flex;align-items:flex-end;gap:12px">
+          <div class="stat-value">142<span class="unit">MB</span></div>
+          <div class="badge-green">● Stable Allocation</div>
+        </div>
+      </div>
+
+      <div class="version-card">
+        <div class="vc-header">
+          <span class="vc-title">Version Comparison (IPS)</span>
+          <div class="vc-tabs">
+            <span class="vtab" onclick="switchVer(this,'2.7X')">2.7X</span>
+            <span class="vtab active" onclick="switchVer(this,'3.2X')">3.2X</span>
+            <span class="vtab preview" onclick="switchVer(this,'3.4-PREVIEW')">3.4-PREVIEW</span>
+          </div>
+        </div>
+        <div class="chart-area">
+          <svg class="chart-svg" id="perf-chart" viewBox="0 0 340 80" preserveAspectRatio="none">
+            <defs>
+              <linearGradient id="cg" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stop-color="#6c63ff" stop-opacity=".4"/>
+                <stop offset="100%" stop-color="#6c63ff" stop-opacity="0"/>
+              </linearGradient>
+            </defs>
+            <path id="chart-path" d="" fill="url(#cg)" stroke="#6c63ff" stroke-width="2" fill-opacity=".5"/>
+          </svg>
+        </div>
+        <div class="chart-labels">
+          <span>APP_LOAD</span><span>GC_STRAT</span><span>OBJ_ALLOC</span><span>METHOD_C</span>
+        </div>
+      </div>
+
+      <div class="defs-card">
+        <div class="defs-title">Active Definitions</div>
+        <div class="def-item">
+          <div>
+            <div class="def-name">array_each.yml</div>
+            <div class="def-desc">Loops through 1M elements with block overhead testing.</div>
+          </div>
+          <span class="def-icon">⚙</span>
+        </div>
+        <div class="def-item">
+          <div>
+            <div class="def-name">string_concat.yml</div>
+            <div class="def-desc">Tests ++ vs &lt;&lt; interpolation across small strings.</div>
+          </div>
+          <span class="def-icon">↺</span>
+        </div>
+        <div class="def-item">
+          <div>
+            <div class="def-name">vm_thread.yml</div>
+            <div class="def-desc">GIL contention and thread creation performance.</div>
+          </div>
+          <span class="def-icon">🔒</span>
+        </div>
+        <div class="view-all">View All Suites →</div>
+      </div>
+
+      <div class="live-stream">
+        <div class="ls-header">
+          <div class="ls-dots"><div class="ls-dot r"></div><div class="ls-dot y"></div><div class="ls-dot g"></div></div>
+          <span class="ls-label">LIVE OUTPUT STREAM</span>
+          <span class="ls-running">RUNNING</span>
+        </div>
+        <div class="ls-body" id="log-body">
+<span class="log-time">08:42:01</span> <span class="log-info">[INFO]</span> Starting benchmark-driver v0.15.2...
+<span class="log-time">08:42:02</span> <span class="log-info">[INFO]</span> Target: ruby 3.4.0preview1 (2024-05-15) [arm64-darwin23]
+<span class="log-time">08:42:05</span> <span class="log-exec">[EXEC]</span> Running array_each...
+<span class="log-time">08:42:13</span> <span class="log-data">[DATA]</span> array_each: 14.2M ips
+<span class="log-time">08:42:15</span> <span class="log-exec">[EXEC]</span> Running string_concat...
+        </div>
+      </div>
+      <div style="height:100px"></div>
+    </div><!-- /metrics -->
+
+    <!-- ══ SOURCE ══ -->
+    <div class="tab-pane" id="tab-source">
+      <div class="editor-body">
+        <div class="line-numbers" id="line-nums">1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11
+12
+13
+14
+15</div>
+        <div class="line-highlight" id="cursor-line" style="top:calc(16px + 13*1.7*13px)"></div>
+<pre id="code-display"><span class="cmt"># Copyright (C) 2026 Tyler Blankenship · Rae · Lucas · Eregon</span>
+<span class="kw">require</span> <span class="str">'sovereign_core'</span>
+<span class="cmt"># Initialize the root access module</span>
+<span class="kw">module</span> <span class="cls">TerminalTerminal</span>
+  <span class="kw">def</span> <span class="fn">self.initiate_protocol</span>(id)
+    session = <span class="cls">Sovereign</span>::<span class="cls">Access</span>.<span class="fn">new</span>(id)
+
+    <span class="kw">if</span> session.<span class="fn">authenticated?</span>
+      puts <span class="str">"System online: Root access granted."</span>
+      session.<span class="fn">execute_payload!</span>
+    <span class="kw">else</span>
+      <span class="kw">raise</span> <span class="str">"Access denied: Protocol terminated."</span>
+    <span class="kw">end</span>
+  <span class="kw">end</span>
+<span class="kw">end</span>
+<span class="cls">TerminalTerminal</span>.<span class="fn">initiate_protocol</span>(<span class="num">0x42A1</span>)</pre>
+      </div>
+      <div class="editor-status">
+        <span class="es-item lang">RUBY 3.3.4</span>
+        <span class="es-item">UTF-8</span>
+        <span class="es-item">LN 14, COL 23</span>
+        <span class="es-item">SPACES: 2</span>
+      </div>
+      <div style="height:80px"></div>
+    </div><!-- /source -->
+
+  </div><!-- /content -->
+
+  <!-- FAB -->
+  <button class="fab" onclick="fabAction()" title="Quick action">⚡</button>
+
+  <!-- BOTTOM NAV -->
+  <nav class="bottom-nav">
+    <div class="nav-indicator" id="nav-indicator"></div>
+    <div class="nav-item active" onclick="switchTab('docs',0)" id="nav-docs">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+      DOCS
+    </div>
+    <div class="nav-item" onclick="switchTab('source',1)" id="nav-source">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+      SOURCE
+    </div>
+    <div class="nav-item" onclick="switchTab('metrics',2)" id="nav-metrics">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+      METRICS
+    </div>
+  </nav>
+
+</div>
+
+<script>
+// ── TAB SWITCHING ─────────────────────────────────
+const tabs = ['docs','source','metrics'];
+const navOrder = {'docs':0,'source':1,'metrics':2};
+let currentTab = 'docs';
+
+function switchTab(tab, idx) {
+  // hide all
+  tabs.forEach(t => {
+    document.getElementById('tab-'+t)?.classList.remove('active');
+    document.getElementById('nav-'+t)?.classList.remove('active');
+  });
+  // show target
+  document.getElementById('tab-'+tab).classList.add('active');
+  document.getElementById('nav-'+tab).classList.add('active');
+  
+  // nav indicator
+  document.getElementById('nav-indicator').style.transform = `translateX(${idx*100}%)`;
+  
+  // source extras
+  const extras = document.getElementById('source-extras');
+  extras.style.display = tab === 'source' ? 'block' : 'none';
+  
+  currentTab = tab;
+  
+  // animate bars when switching to metrics
+  if(tab === 'metrics') {
+    setTimeout(() => {
+      document.getElementById('iter-bar').style.width = '74%';
+      drawChart('3.2X');
+    }, 100);
+  }
+}
+
+// ── BENCHMARK BUTTON ─────────────────────────────
+let benchRunning = false;
+let logInterval;
+
+function toggleBench() {
+  const btn = document.getElementById('bench-btn');
+  const log = document.getElementById('log-body');
+  benchRunning = !benchRunning;
+  
+  if(benchRunning) {
+    btn.textContent = '■ STOP';
+    btn.classList.add('running');
+    const newLines = [
+      '<span class="log-time">08:42:16</span> <span class="log-data">[DATA]</span> string_concat: 28.4M ips',
+      '<span class="log-time">08:42:18</span> <span class="log-exec">[EXEC]</span> Running vm_thread...',
+      '<span class="log-time">08:42:24</span> <span class="log-data">[DATA]</span> vm_thread: 8.1M ips',
+      '<span class="log-time">08:42:25</span> <span class="log-info">[INFO]</span> Benchmark complete. Writing report...',
+      '<span class="log-time">08:42:26</span> <span class="log-info">[INFO]</span> Total: 42.8M avg ips — PASS ✓',
+    ];
+    let i = 0;
+    logInterval = setInterval(() => {
+      if(i < newLines.length) {
+        log.innerHTML += '\n' + newLines[i++];
+        log.scrollTop = log.scrollHeight;
+      } else {
+        clearInterval(logInterval);
+        btn.textContent = '▶ make benchmark';
+        btn.classList.remove('running');
+        benchRunning = false;
+      }
+    }, 600);
+  } else {
+    clearInterval(logInterval);
+    btn.textContent = '▶ make benchmark';
+    btn.classList.remove('running');
+  }
+}
+
+// ── CHART ────────────────────────────────────────
+const chartData = {
+  '2.7X':       [65,42,58,38,50,35,48,30],
+  '3.2X':       [55,75,62,80,58,72,68,74],
+  '3.4-PREVIEW':[70,68,85,65,78,90,72,82],
+};
+
+function drawChart(key) {
+  const pts = chartData[key];
+  const svg = document.getElementById('perf-chart');
+  const W=340, H=78, pad=4;
+  const xs = pts.map((_,i) => pad + i*(W-pad*2)/(pts.length-1));
+  const ys = pts.map(v => H - pad - (v/100)*(H-pad*2));
+  let d = `M${xs[0]},${ys[0]}`;
+  for(let i=1;i<xs.length;i++){
+    const cx=(xs[i]+xs[i-1])/2;
+    d+=` C${cx},${ys[i-1]} ${cx},${ys[i]} ${xs[i]},${ys[i]}`;
+  }
+  d += ` L${xs[xs.length-1]},${H} L${xs[0]},${H} Z`;
+  document.getElementById('chart-path').setAttribute('d',d);
+}
+
+function switchVer(el, key) {
+  document.querySelectorAll('.vtab').forEach(t=>t.classList.remove('active'));
+  el.classList.add('active');
+  drawChart(key);
+}
+
+// ── RUN BUTTON ────────────────────────────────────
+function runCode() {
+  const btn = document.querySelector('.tool-btn.run');
+  btn.textContent = '⏳ RUNNING';
+  btn.style.background = 'var(--green)';
+  setTimeout(() => {
+    btn.textContent = '✓ DONE';
+    setTimeout(() => {
+      btn.textContent = '▶ RUN';
+      btn.style.background = '';
+    }, 1200);
+  }, 1500);
+}
+
+// ── FAB ───────────────────────────────────────────
+function fabAction() {
+  const icons = ['⚡','⬡','◈','⟐'];
+  const fab = document.querySelector('.fab');
+  let i = (icons.indexOf(fab.textContent)+1) % icons.length;
+  fab.textContent = icons[i];
+  fab.style.transform = 'scale(0.8) rotate(180deg)';
+  setTimeout(() => fab.style.transform = '', 300);
+}
+
+// ── THEME TOGGLE ──────────────────────────────────
+let lightMode = false;
+document.getElementById('theme-toggle').addEventListener('click', () => {
+  lightMode = !lightMode;
+  if(lightMode) {
+    document.documentElement.style.setProperty('--bg','#f0f2ff');
+    document.documentElement.style.setProperty('--bg2','#e8eaf6');
+    document.documentElement.style.setProperty('--bg3','#ffffff');
+    document.documentElement.style.setProperty('--code-bg','#1a1d2e');
+    document.documentElement.style.setProperty('--text','#1a1d2e');
+    document.documentElement.style.setProperty('--text2','#3d4066');
+    document.getElementById('theme-toggle').textContent = '🌙';
+  } else {
+    document.documentElement.style.setProperty('--bg','#0d0f1a');
+    document.documentElement.style.setProperty('--bg2','#131525');
+    document.documentElement.style.setProperty('--bg3','#1a1d2e');
+    document.documentElement.style.setProperty('--code-bg','#161828');
+    document.documentElement.style.setProperty('--text','#e8eaf6');
+    document.documentElement.style.setProperty('--text2','#9fa3c7');
+    document.getElementById('theme-toggle').textContent = '☀';
+  }
+});
+
+// ── CURSOR LINE ───────────────────────────────────
+document.addEventListener('click', e => {
+  if(e.target.closest('#tab-source')) {
+    const lineH = 13*1.7;
+    const editorTop = document.querySelector('.editor-body').getBoundingClientRect().top;
+    const relY = e.clientY - editorTop - 16;
+    const lineNum = Math.max(0, Math.floor(relY/lineH));
+    document.getElementById('cursor-line').style.top = `${16 + lineNum*lineH}px`;
+  }
+});
+
+// ── INIT ─────────────────────────────────────────
+window.addEventListener('load', () => {
+  drawChart('3.2X');
+  // stagger log lines
+  const log = document.getElementById('log-body');
+  const lines = log.innerHTML.split('\n');
+  log.innerHTML = '';
+  lines.forEach((l,i) => {
+    setTimeout(()=>{ log.innerHTML += (i?'\n':'') + l; log.scrollTop=log.scrollHeight; }, i*120);
+  });
+});
+</script>
+</body>
+</html>
