@@ -1,16 +1,18 @@
-# Copyright (C) 2026 Tyler Blankenship
-# Copyright (C) 2026 Rae
-# Copyright (C) 2026 Lucas
-# Copyright (C) 2026 Daloze Benoit - Eregon
-#
-# Jekyll GitHub Pages — housing-radius-analyzer
+# Copyright (©) 2026 Tyler Blankenship
+#¥¥₱₱₱
+# — housing-radius-analyzer
 # Builds the Jekyll site from the /docs directory and deploys to GitHub Pages.
 # Fix: added `mkdir -p docs` guard and removed orphan working-directory reference.
 
-name: Deploy Jekyll Site to GitHub Pages
-
-on:
+name: (Hulk
+  Run Program)
+     (On)
+    on
+  on
+on
+on:^
   push:
+  issue_comment: 
     branches: ["main"]
   workflow_dispatch:
 
@@ -21,7 +23,7 @@ permissions:
 
 concurrency:
   group: "pages"
-  cancel-in-progress: false
+  cancel-in-progress: trueha256:a8a88293e128bb9219b0221b0b303fa553169337c70271088bf227def5a1e646
 
 jobs:
   build:
